@@ -1,0 +1,86 @@
+&lt;script&gt;
+var list=document.getElementsByTagName(&quot;tbody&quot;)[1];
+var length = list.getElementsByTagName(&quot;tr&quot;).length - 3;
+var startLine = 2;
+var i = 0;
+
+var buildId = ${ENV:BUILD_ID};
+var buildIdInt = parseInt(buildId);
+function callServer() {	
+	var xmlHttp;
+	if(window.ActiveXObject)
+        xmlHttp =new ActiveXObject(&quot;Microsoft.XMLHTTP&quot;);
+    else if(window.XMLHttpRequest)   
+        xmlHttp=new XMLHttpRequest();   
+	var baseUrl = document.URL
+    var url = baseUrl.substring(0, baseUrl.lastIndexOf(&quot;/&quot;) + 1) + buildIdInt + &quot;/api/xml?pretty=true&amp;tree=actions[parameters[*],causes[*]]&quot;;
+	
+	xmlHttp.open(&quot;GET&quot;,url,true);   
+	xmlHttp.onreadystatechange = function(){
+		if(xmlHttp.readyState==4 &amp;&amp; xmlHttp.status==200 &amp;&amp; i &lt; length) {
+			var branch_name, SSH_PUBLISHERS, user_name;
+			var para = xmlHttp.responseXML.getElementsByTagName(&quot;parameter&quot;);
+			var varCount = para.length;
+			var found = 0;
+			for (var j = 0; j &lt; varCount; j++)
+			{
+				var name = para[j].getElementsByTagName(&quot;name&quot;)[0].firstChild.nodeValue;
+				if (name == &quot;branch_name&quot;)
+				{
+					branch_name = para[j].getElementsByTagName(&quot;value&quot;)[0].firstChild.nodeValue;
+				}
+				else if (name == &quot;SSH_PUBLISHERS&quot;)
+				{
+					found = 1;
+					SSH_PUBLISHERS = para[j].getElementsByTagName(&quot;value&quot;)[0].firstChild.nodeValue;
+				}
+			}
+			user_name = xmlHttp.responseXML.getElementsByTagName(&quot;cause&quot;)[0].getElementsByTagName(&quot;userName&quot;)[0].firstChild.nodeValue;
+			var lineContent1 = &quot;&quot;, lineContent2 = &quot;&quot;, lineContent3 = &quot;&quot;;
+			if(branch_name == &quot;trunk&quot;) {
+				lineContent1 = &quot;　　trunk发布&quot;;
+			}
+			else {
+				lineContent1 = &quot;　　branch_name=&quot; + branch_name
+				lineContent2 = &quot;　　btag=b_&quot; + buildIdInt + &quot;_&quot; + user_name;
+			}
+
+			buildIdInt--;
+			var newTd=document.createElement(&quot;TD&quot;);
+
+			var textnode1 =document.createTextNode(lineContent1);
+			var newDiv1=document.createElement(&quot;DIV&quot;);
+			newDiv1.appendChild(textnode1);
+			newTd.appendChild(newDiv1);
+
+			var textnode2 =document.createTextNode(lineContent2);
+			var newDiv2=document.createElement(&quot;DIV&quot;);
+			newDiv2.appendChild(textnode2);
+			newTd.appendChild(newDiv2);
+
+			if (found == 1)
+			{
+				lineContent3 = &quot;　　环境=&quot; + SSH_PUBLISHERS;
+				var textnode3 =document.createTextNode(lineContent3);
+				var newDiv3=document.createElement(&quot;DIV&quot;);
+				newDiv3.appendChild(textnode3);
+				newTd.appendChild(newDiv3);
+			}
+
+			var textnode4 =document.createTextNode(&quot;　&quot;);
+			var newDiv4=document.createElement(&quot;DIV&quot;);
+			newDiv4.appendChild(textnode4);
+			newTd.appendChild(newDiv4);
+			
+			var newTr=document.createElement(&quot;TR&quot;);
+			newTr.appendChild(newTd);
+			list.insertBefore(newTr,list.children[i*2 + startLine]);
+			i++;
+			callServer();
+		}
+	};
+	xmlHttp.send(null);   
+}
+callServer();
+
+&lt;/script&gt;
